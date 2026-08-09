@@ -57,7 +57,7 @@ h1.lb-section-title { color:#fff !important;font-size:2.35rem !important;text-tr
 .lb-section-title i { width:1.2em;flex:0 0 1.2em;text-align:center; }
 .lb-metric-card { background:linear-gradient(145deg,#1d252c,#192027);padding:16px 18px;border-radius:4px;border:1px solid #25313a;min-height:105px;box-shadow:0 8px 18px #0002; }
 .lb-metric-label { display:flex;align-items:center;gap:9px;color:#89a;font-size:.7rem;text-transform:uppercase;letter-spacing:1.2px;font-weight:700; }
-.lb-metric-value { color:#fff;font-family:var(--font-serif);font-size:2rem;font-weight:700;margin-top:9px;line-height:1; }
+.lb-metric-value { color:#fff;font-family:var(--font-serif);font-size:2rem;font-weight:700;margin-top:9px;line-height:1;white-space:nowrap; }
 .lb-insight { display:flex;gap:7px;align-items:center;color:#789;font-size:.78rem;margin:.3rem 0; }
 .lb-rating-label { display:flex;align-items:center;gap:8px;color:#9ab;font-weight:700;margin:.65rem 0; }
 .lb-rating-label > span { color:var(--lb-green);letter-spacing:2px; }
@@ -82,12 +82,20 @@ h1.lb-section-title { color:#fff !important;font-size:2.35rem !important;text-tr
 .lb-calendar-footer { display:flex;justify-content:flex-end;align-items:center;gap:5px;color:#789;font-size:.68rem;margin-top:7px; }
 .lb-calendar-footer span { width:11px;height:11px;border-radius:2px;display:inline-block; }
 div[data-testid="stSelectbox"] label { color:#89a !important;text-transform:uppercase;letter-spacing:1px;font-size:.68rem; }
-@media (max-width:1100px) {
+@media (max-width:1180px) {
+  .stHorizontalBlock:has(.lb-metric-card) { display:grid !important;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px !important; }
+  .stHorizontalBlock:has(.lb-metric-card) > [data-testid="stColumn"] { width:auto !important;min-width:0 !important;flex:none !important; }
+  .stHorizontalBlock:has([data-testid="stVegaLiteChart"]) { display:block !important; }
+  .stHorizontalBlock:has([data-testid="stVegaLiteChart"]) > [data-testid="stColumn"] { width:100% !important;min-width:0 !important; }
+  .stHorizontalBlock:has([data-testid="stVegaLiteChart"]) > [data-testid="stColumn"] + [data-testid="stColumn"] { margin-top:24px; }
   .stHorizontalBlock:has(.lb-poster-card) { display:grid !important;grid-template-columns:repeat(5,minmax(0,1fr));gap:16px 12px !important; }
   .stHorizontalBlock:has(.lb-poster-card) > [data-testid="stColumn"] { width:auto !important;min-width:0 !important;flex:none !important; }
 }
 @media (max-width:640px) {
   .stHorizontalBlock:has(.lb-poster-card) { grid-template-columns:repeat(3,minmax(0,1fr)); }
+  .lb-metric-card { padding:14px;min-height:96px; }
+  .lb-metric-value { font-size:clamp(1.6rem,8vw,2rem); }
+  h1.lb-section-title { font-size:clamp(1.65rem,8vw,2.35rem) !important; }
   .lb-poster-tooltip { max-width:150px;white-space:normal;text-align:center; }
 }
 </style>
