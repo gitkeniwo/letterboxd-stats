@@ -1,6 +1,8 @@
 # Letterboxd Stats
 
-A local-first Streamlit dashboard for your Letterboxd viewing history. Upload the original Letterboxd export ZIP, enrich it with TMDB posters and credits, and explore yearly viewing statistics.
+A simple Streamlit dashboard for your Letterboxd viewing history. Upload the original Letterboxd export ZIP, fetch TMDB posters and credits, and explore yearly viewing statistics.
+
+<img width="75%" height="926" alt="image" src="https://github.com/user-attachments/assets/68ed35f1-d3af-4c52-8741-9f487e14933a" />
 
 ## Quick start
 
