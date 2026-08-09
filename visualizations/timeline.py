@@ -1,114 +1,156 @@
-"""
-Timeline Module - 时间线图表
-"""
+"""Viewing timeline and GitHub-style calendar heatmap."""
+
 import sqlite3
-import streamlit as st
-import pandas as pd
+from datetime import date, timedelta
+from html import escape
+
 import altair as alt
-from datetime import datetime, timedelta
+import pandas as pd
+import streamlit as st
+
+from letterboxd_stats.ui_components import insight, section_header
 
 
 def get_monthly_counts(conn: sqlite3.Connection, year: int) -> pd.DataFrame:
-    """Get monthly film counts for a specific year."""
-    df = pd.read_sql_query("""
-        SELECT 
-            strftime('%m', watched_date) as month,
-            COUNT(*) as count
-        FROM diary 
-        WHERE strftime('%Y', watched_date) = ?
-        GROUP BY strftime('%m', watched_date)
-        ORDER BY month
-    """, conn, params=(str(year),))
-    
-    # Ensure all 12 months are present
-    all_months = pd.DataFrame({
-        "month": [f"{i:02d}" for i in range(1, 13)]
-    })
-    df = all_months.merge(df, on="month", how="left").fillna(0)
-    df["count"] = df["count"].astype(int)
-    
-    # Convert month number to name
-    month_names = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", 
-                   "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
-    df["month_name"] = df["month"].apply(lambda x: month_names[int(x) - 1])
-    
-    return df
+    data = pd.read_sql_query(
+        """
+        SELECT strftime('%m', watched_date) AS month, COUNT(*) AS count
+        FROM diary WHERE strftime('%Y', watched_date)=?
+        GROUP BY month ORDER BY month
+        """,
+        conn,
+        params=(str(year),),
+    )
+    months = pd.DataFrame({"month": [f"{value:02d}" for value in range(1, 13)]})
+    data = months.merge(data, on="month", how="left").fillna(0)
+    data["count"] = data["count"].astype(int)
+    names = [
+        "Jan",
+        "Feb",
+        "Mar",
+        "Apr",
+        "May",
+        "Jun",
+        "Jul",
+        "Aug",
+        "Sep",
+        "Oct",
+        "Nov",
+        "Dec",
+    ]
+    data["month_name"] = data["month"].map(lambda value: names[int(value) - 1])
+    return data
 
 
 def get_daily_counts(conn: sqlite3.Connection, year: int) -> pd.DataFrame:
-    """Get daily film counts for calendar heatmap."""
-    df = pd.read_sql_query("""
-        SELECT 
-            watched_date as date,
-            COUNT(*) as count
-        FROM diary 
-        WHERE strftime('%Y', watched_date) = ?
-          AND watched_date IS NOT NULL
+    return pd.read_sql_query(
+        """
+        SELECT watched_date AS date, COUNT(*) AS count
+        FROM diary
+        WHERE strftime('%Y', watched_date)=? AND watched_date IS NOT NULL
         GROUP BY watched_date
-    """, conn, params=(str(year),))
-    
-    return df
+        """,
+        conn,
+        params=(str(year),),
+    )
 
 
-def render_timeline(conn: sqlite3.Connection, year: int):
-    """Render timeline section."""
-    st.header("📈 Timeline")
-    
-    # Monthly trend chart
+def _level(count: int) -> int:
+    if count <= 0:
+        return 0
+    return min(count, 4)
+
+
+def calendar_html(daily_df: pd.DataFrame, year: int) -> str:
+    counts = {str(row.date): int(row.count) for row in daily_df.itertuples()}
+    first = date(year, 1, 1)
+    last = date(year, 12, 31)
+    grid_start = first - timedelta(days=first.weekday())
+    grid_end = last + timedelta(days=6 - last.weekday())
+    weeks = ((grid_end - grid_start).days // 7) + 1
+    parts = [
+        '<div class="lb-calendar-wrap">',
+        f'<div class="lb-calendar-grid" style="grid-template-columns:30px repeat({weeks},12px)">',
+    ]
+    month_names = [
+        "Jan",
+        "Feb",
+        "Mar",
+        "Apr",
+        "May",
+        "Jun",
+        "Jul",
+        "Aug",
+        "Sep",
+        "Oct",
+        "Nov",
+        "Dec",
+    ]
+    for month, name in enumerate(month_names, start=1):
+        month_start = date(year, month, 1)
+        column = ((month_start - grid_start).days // 7) + 2
+        parts.append(
+            f'<span class="lb-calendar-month" style="grid-column:{column}/span 4;grid-row:1">{name}</span>'
+        )
+    for label, row in (("Mon", 2), ("Wed", 4), ("Fri", 6)):
+        parts.append(
+            f'<span class="lb-calendar-day" style="grid-column:1;grid-row:{row}">{label}</span>'
+        )
+    current = grid_start
+    while current <= grid_end:
+        week = ((current - grid_start).days // 7) + 2
+        row = current.weekday() + 2
+        count = counts.get(current.isoformat(), 0) if current.year == year else 0
+        muted = " opacity:.3" if current.year != year else ""
+        title = f"{current.isoformat()}: {count} film{'s' if count != 1 else ''}"
+        parts.append(
+            f'<span class="lb-calendar-cell lb-level-{_level(count)}" '
+            f'style="grid-column:{week};grid-row:{row};{muted}" title="{escape(title)}"></span>'
+        )
+        current += timedelta(days=1)
+    parts.extend(
+        [
+            "</div>",
+            '<div class="lb-calendar-footer"><span style="width:auto">Less</span>',
+            *[f'<span class="lb-level-{level}"></span>' for level in range(5)],
+            '<span style="width:auto">More</span></div>',
+            "</div>",
+        ]
+    )
+    return "".join(parts)
+
+
+def render_timeline(conn: sqlite3.Connection, year: int) -> None:
+    section_header("Timeline", "chart-line", color="green")
     st.subheader("Monthly Viewing Trend")
     monthly_df = get_monthly_counts(conn, year)
-    
-    if not monthly_df.empty and monthly_df["count"].sum() > 0:
-        # Create Altair bar chart for better control
-        chart = alt.Chart(monthly_df).mark_bar(color="#00c030").encode(
-            x=alt.X("month_name:N", sort=None, title="Month"),
-            y=alt.Y("count:Q", title="Films Watched"),
-            tooltip=["month_name", "count"]
-        ).properties(
-            height=300
+    if monthly_df["count"].sum() > 0:
+        chart = (
+            alt.Chart(monthly_df)
+            .mark_bar(color="#00e054", cornerRadiusTopLeft=2, cornerRadiusTopRight=2)
+            .encode(
+                x=alt.X("month_name:N", sort=None, title=None),
+                y=alt.Y("count:Q", title="Films watched"),
+                tooltip=["month_name", "count"],
+            )
+            .properties(height=260)
+            .configure(font="DM Sans")
+            .configure_view(strokeOpacity=0)
         )
-        st.altair_chart(chart, use_container_width=True)
+        st.altair_chart(chart, width="stretch")
     else:
         st.info("No viewing data for this year.")
-    
-    # Calendar heatmap
-    st.subheader("📅 Viewing Calendar")
+
+    section_header("Viewing Calendar", "calendar-days", color="blue", level=3)
     daily_df = get_daily_counts(conn, year)
-    
-    if not daily_df.empty:
-        # Create full year date range
-        start_date = datetime(year, 1, 1)
-        end_date = datetime(year, 12, 31)
-        date_range = pd.date_range(start=start_date, end=end_date, freq='D')
-        
-        calendar_df = pd.DataFrame({"date": date_range.strftime("%Y-%m-%d")})
-        calendar_df = calendar_df.merge(daily_df, on="date", how="left").fillna(0)
-        calendar_df["count"] = calendar_df["count"].astype(int)
-        calendar_df["date"] = pd.to_datetime(calendar_df["date"])
-        calendar_df["week"] = calendar_df["date"].dt.isocalendar().week
-        calendar_df["weekday"] = calendar_df["date"].dt.weekday
-        calendar_df["month"] = calendar_df["date"].dt.month
-        
-        # Altair calendar heatmap
-        heatmap = alt.Chart(calendar_df).mark_rect(cornerRadius=2).encode(
-            x=alt.X("week:O", title="Week"),
-            y=alt.Y("weekday:O", title="Day", 
-                   sort=["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]),
-            color=alt.Color("count:Q",
-                           scale=alt.Scale(scheme="greens"),
-                           legend=alt.Legend(title="Films")),
-            tooltip=[
-                alt.Tooltip("date:T", title="Date", format="%Y-%m-%d"),
-                alt.Tooltip("count:Q", title="Films Watched")
-            ]
-        ).properties(
-            height=150
-        )
-        st.altair_chart(heatmap, use_container_width=True)
-        
-        # Find most active day
-        if daily_df["count"].max() > 0:
-            most_active = daily_df.loc[daily_df["count"].idxmax()]
-            st.caption(f"🔥 Most active day: **{most_active['date']}** with **{int(most_active['count'])}** films")
-    else:
+    if daily_df.empty:
         st.info("No daily viewing data available.")
+        return
+    st.markdown(calendar_html(daily_df, year), unsafe_allow_html=True)
+    most_active = daily_df.loc[daily_df["count"].idxmax()]
+    insight(
+        f"Most active day: <strong>{escape(str(most_active['date']))}</strong> · "
+        f"<strong>{int(most_active['count'])}</strong> films",
+        "fire",
+        color="orange",
+    )
