@@ -1,15 +1,26 @@
 [project]
 name = "letterboxd-stats"
-version = "0.1.0"
-description = "Letterboxd data visualization with Streamlit"
+version = "0.2.0"
+description = "Local-first Letterboxd data import, TMDB enrichment, and visualization"
 requires-python = ">=3.11"
 dependencies = [
     "streamlit>=1.40.0",
     "pandas>=2.0.0",
     "altair>=5.0.0",
     "httpx>=0.27.0",
-    "python-dotenv>=1.0.0",
+    "platformdirs>=4.2.0",
 ]
 
 [project.scripts]
+letterboxd-stats = "letterboxd_stats.cli:main"
 init-db = "db.init_db:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["letterboxd_stats", "visualizations", "db"]
+
+[dependency-groups]
+dev = ["pytest>=8.0"]

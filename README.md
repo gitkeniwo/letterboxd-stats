@@ -1,101 +1,93 @@
 # Letterboxd Stats
 
-A Streamlit-based visualization dashboard for your Letterboxd viewing data. Get insights into your movie watching habits with beautiful, Letterboxd-styled visualizations.
+A local-first Streamlit dashboard for your Letterboxd viewing history. Upload the original Letterboxd export ZIP, enrich it with TMDB posters and credits, and explore yearly viewing statistics.
 
-## Features
+## Quick start
 
-- 📊 **Year Overview** - Total films, average rating, rewatches, watch time
-- 🏆 **Top Rated Films** - Poster wall for 5-star and 4.5-star movies
-- 🔄 **Rewatched Films** - Films you loved enough to watch again
-- 📈 **Timeline** - Monthly viewing trends and calendar heatmap
-- 🎬 **Directors** - Most watched directors with photos
-- 🌍 **Genres, Countries & Languages** - Distribution charts
-- ⚙️ **Data Management** - Fix incorrect movie posters via TMDB
-
-## Tech Stack
-
-- **Python 3.11+** with `uv` for package management
-- **Streamlit** for the web interface
-- **SQLite** for data storage
-- **TMDB API** for movie metadata (posters, directors, genres)
-- **Altair** for charts
-
-## Setup
-
-### 1. Clone and Install
+Install [uv](https://docs.astral.sh/uv/getting-started/installation/), then run:
 
 ```bash
-git clone <your-repo>
+uvx letterboxd-stats
+```
+
+Until the package is published to PyPI, run it directly from GitHub:
+
+```bash
+uvx --from git+https://github.com/gitkeniwo/letterboxd-stats letterboxd-stats
+```
+
+The app opens a setup wizard. You only need:
+
+1. The original ZIP from [Letterboxd data export](https://letterboxd.com/settings/data/).
+2. A TMDB API key for posters, directors, cast, genres, countries, and runtime.
+
+Do not extract or rename the Letterboxd ZIP. Data and the TMDB key stay in your local user data/configuration directories.
+
+## What changed in 0.2
+
+- Direct Letterboxd ZIP upload with validation and preview.
+- Transactional imports: a failed update leaves the previous library intact.
+- Incremental TMDB enrichment that resumes after interruption.
+- Movie-first matching with a confidence check and automatic TV fallback.
+- Explicit placeholder cards instead of unexplained gaps when a poster is missing.
+- Existing metadata and manual corrections survive newer Letterboxd exports.
+- First-run setup and ongoing data management inside the app.
+- Persistent storage outside the source tree and uvx environment.
+- One `letterboxd-stats` command for launching the app.
+
+## Updating your data
+
+Open **Data Management → Import update**, upload a newer Letterboxd ZIP, and confirm. Letterboxd tables are replaced as a snapshot while existing TMDB metadata is retained. Only new or previously failed films are sent to TMDB.
+
+**Data Management** opens directly on the unresolved-film queue. It selects the first unmatched film, searches both movie and TV results, and also accepts a direct TMDB ID. A manual correction is protected from future automatic replacement. Import and TMDB-key controls live in compact popovers at the top of the page.
+
+Libraries enriched by an older version can use **Retry automatic movie + TV matching** once before reviewing the remaining films manually.
+
+## Command options
+
+```bash
+letterboxd-stats --port 8502
+letterboxd-stats --no-browser
+letterboxd-stats --data-dir /path/to/portable-data
+letterboxd-stats --doctor
+```
+
+`--doctor` creates or migrates the schema and prints the active database location without starting Streamlit.
+
+## Development
+
+```bash
+git clone <repository-url>
 cd letterboxd-stats
 uv sync
-```
-
-### 2. Export Your Letterboxd Data
-
-1. Go to [letterboxd.com/settings/data/](https://letterboxd.com/settings/data/)
-2. Click "Export Your Data"
-3. Extract the ZIP file to the project root (folder should be named `letterboxd-*`)
-
-### 3. Get TMDB API Key (Optional but Recommended)
-
-1. Sign up at [themoviedb.org](https://www.themoviedb.org/signup)
-2. Get your API key from [Settings > API](https://www.themoviedb.org/settings/api)
-3. Create `.env.dev` file:
-
-```env
-API_KEY=your_tmdb_api_key_here
-```
-
-### 4. Initialize Database
-
-```bash
-uv run python db/init_db.py
-```
-
-### 5. Enrich Data with TMDB (Optional)
-
-This fetches posters, directors, genres, etc. from TMDB:
-
-```bash
-uv run python db/enrich_data.py
-```
-
-### 6. Run the App
-
-```bash
+uv run pytest
 uv run streamlit run app.py
 ```
 
-Open http://localhost:8501 in your browser.
+The old commands remain available for compatibility, but are no longer part of the normal user flow:
 
-## Project Structure
-
-```
-letterboxd-stats/
-├── app.py                 # Main Streamlit app
-├── db/
-│   ├── init_db.py         # CSV to SQLite importer
-│   └── enrich_data.py     # TMDB data enrichment
-├── visualizations/
-│   ├── overview.py        # Stats overview + poster walls
-│   ├── timeline.py        # Monthly trends + calendar
-│   ├── film_analysis.py   # Rating/decade distribution
-│   ├── directors.py       # Director statistics
-│   ├── genres_countries.py # Genre/country/language charts
-│   └── tags_reviews.py    # Tags and review stats
-├── pages/
-│   └── data_management.py # Fix incorrect movie data
-├── .streamlit/
-│   └── config.toml        # Streamlit theme config
-├── pyproject.toml         # Project dependencies
-└── letterboxd.db          # SQLite database (generated)
+```bash
+uv run python db/init_db.py /path/to/letterboxd-export.zip
+uv run python db/enrich_data.py --api-key YOUR_KEY
 ```
 
-## Credits
+On its first normal launch from the repository, version 0.2 copies a legacy project-local `letterboxd.db` into the user data directory. The original database is not removed.
 
-- Data source: [Letterboxd](https://letterboxd.com)
-- Movie metadata: [The Movie Database (TMDB)](https://www.themoviedb.org)
-- Inspired by [Statsboxd](https://github.com/GiuDiMax/Statsboxd)
+## Architecture
+
+```text
+Streamlit UI
+    ↓
+transactional ZIP importer ── persistent SQLite database
+    ↓                              ↑
+restartable TMDB enrichment ──────┘
+```
+
+The visualization modules remain presentation-focused. Importing, storage, TMDB access, and enrichment can run independently of Streamlit and are covered by automated tests.
+
+## Privacy
+
+Letterboxd exports contain personal profile, viewing, rating, and review data. The app runs locally and does not upload the export to an application server. Movie identifiers and titles are sent to TMDB as required for enrichment.
 
 ## License
 
