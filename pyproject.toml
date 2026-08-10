@@ -1,7 +1,8 @@
 [project]
-name = "letterboxd-stats"
+name = "letterboxd-wrapped"
 version = "0.2.0"
 description = "Local-first Letterboxd data import, TMDB enrichment, and visualization"
+readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
     "streamlit>=1.40.0",
@@ -12,8 +13,14 @@ dependencies = [
 ]
 
 [project.scripts]
+letterboxd-wrapped = "letterboxd_stats.cli:main"
 letterboxd-stats = "letterboxd_stats.cli:main"
 init-db = "db.init_db:main"
+
+[project.urls]
+Homepage = "https://github.com/gitkeniwo/letterboxd-stats"
+Repository = "https://github.com/gitkeniwo/letterboxd-stats"
+Issues = "https://github.com/gitkeniwo/letterboxd-stats/issues"
 
 [build-system]
 requires = ["hatchling"]

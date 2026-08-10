@@ -1,6 +1,6 @@
 # Letterboxd Stats
 
-A simple Streamlit dashboard for your Letterboxd viewing history. Upload the original Letterboxd export ZIP, fetch TMDB posters and credits, and explore yearly viewing statistics.
+A simple Streamlit dashboard for your Letterboxd viewing history. Upload your Letterboxd export ZIP file, fetch posters and credits from TMDB, and explore your yearly wrapped stats.
 
 <img width="75%" height="926" alt="image" src="https://github.com/user-attachments/assets/68ed35f1-d3af-4c52-8741-9f487e14933a" />
 
@@ -9,21 +9,22 @@ A simple Streamlit dashboard for your Letterboxd viewing history. Upload the ori
 Install [uv](https://docs.astral.sh/uv/getting-started/installation/), then run:
 
 ```bash
-uvx letterboxd-stats
+uvx letterboxd-wrapped
 ```
 
-Until the package is published to PyPI, run it directly from GitHub:
+Or run it directly from GitHub:
 
 ```bash
 uvx --from git+https://github.com/gitkeniwo/letterboxd-stats letterboxd-stats
 ```
 
-The app opens a setup wizard. You only need:
+The web app opens a setup wizard page, where you only need:
 
-1. The original ZIP from [Letterboxd data export](https://letterboxd.com/settings/data/).
-2. A TMDB API key for posters, directors, cast, genres, countries, and runtime.
+1. Your Letterboxd ZIP file from [Letterboxd data export](https://letterboxd.com/settings/data/).
+2. A [TMDB API key](https://developer.themoviedb.org/docs/getting-started) for displaying posters, directors, cast, genres, countries, and runtime, as these cannot be directly fetched from Letterboxd.
 
-Do not extract or rename the Letterboxd ZIP. Data and the TMDB key stay in your local user data/configuration directories.
+Do not extract or rename the Letterboxd ZIP.
+Data and the TMDB key stay in your local user data/configuration directories.
 
 ## What changed in 0.2
 
@@ -35,7 +36,7 @@ Do not extract or rename the Letterboxd ZIP. Data and the TMDB key stay in your 
 - Existing metadata and manual corrections survive newer Letterboxd exports.
 - First-run setup and ongoing data management inside the app.
 - Persistent storage outside the source tree and uvx environment.
-- One `letterboxd-stats` command for launching the app.
+- One `letterboxd-wrapped` command for launching the app (`letterboxd-stats` remains an alias).
 
 ## Updating your data
 
@@ -48,10 +49,10 @@ Libraries enriched by an older version can use **Retry automatic movie + TV matc
 ## Command options
 
 ```bash
-letterboxd-stats --port 8502
-letterboxd-stats --no-browser
-letterboxd-stats --data-dir /path/to/portable-data
-letterboxd-stats --doctor
+letterboxd-wrapped --port 8502
+letterboxd-wrapped --no-browser
+letterboxd-wrapped --data-dir /path/to/portable-data
+letterboxd-wrapped --doctor
 ```
 
 `--doctor` creates or migrates the schema and prints the active database location without starting Streamlit.
@@ -81,7 +82,7 @@ On its first normal launch from the repository, version 0.2 copies a legacy proj
 Streamlit UI
     ↓
 transactional ZIP importer ── persistent SQLite database
-    ↓                              ↑
+    ↓                             ↑
 restartable TMDB enrichment ──────┘
 ```
 

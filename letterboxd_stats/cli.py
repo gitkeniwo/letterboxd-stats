@@ -1,4 +1,4 @@
-"""Command-line launcher used by ``uvx letterboxd-stats``."""
+"""Command-line launcher used by ``uvx letterboxd-wrapped``."""
 
 from __future__ import annotations
 
